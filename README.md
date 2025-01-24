@@ -1,2 +1,1 @@
-# oss-template
-Open Source repo template
+# hiddenlayer-local-model-scan-github-action

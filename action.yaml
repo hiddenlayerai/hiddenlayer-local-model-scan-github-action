@@ -1,0 +1,138 @@
+name: 'Local Model Scanner'
+description: 'Scans models for vulnerabilities using the HiddenLayer Model Scanner'
+branding:
+  icon: lock
+  color: green
+inputs:
+  model_path:
+    description: 'Path to the model, either a file or a folder'
+    required: true
+  fail_on_detection:
+    description: Fails pipeline if a malicious models is detected.
+    required: false
+    default: true
+  output_file:
+    description: Writes detection output to a json file.
+    required: false
+    default: null
+  sarif_file:
+    description: Writes detection output in the SARIF format to a file.
+    required: false
+    default: null
+  run_id:
+    description: Run ID
+    required: false
+    default: null
+  upload_to_hiddenlayer:
+    description: 'Uploads the report to Hiddenlayer cloud'
+    required: false
+    default: true
+  upload_to_github_security:
+    description: 'Uploads the SARIF file to GitHub Security'
+    required: false
+    default: false
+  local_scanner_image:
+    description: 'Perform scans using a local scanner container image'
+    required: false
+    default: 'quay.io/hiddenlayer/distro-cli-modelscanner'
+  local_scanner_version:
+    description: 'Version of the local scanner container image'
+    required: false
+    default: 'latest'
+  model_name:
+    description: 'Name of the model'
+    required: false
+    default: null
+  model_version:
+    description: 'Version of the model'
+    required: false
+    default: null
+outputs:
+  detection_results:
+    description: 'Markdown table of detection results.'
+runs:
+  using: 'composite'
+  steps:
+    - name: Login to quay.io
+      shell: bash
+      run: docker login --username=$HL_CONTAINER_REGISTRY_USER --password=$HL_CONTAINER_REGISTRY_SECRET quay.io
+
+    - name: Caclulate CLI Parameters
+      shell: bash
+      id: calculate_cli_parameters
+      run: |
+        if [ -n "${{ inputs.model_name }}" ]; then
+          echo "model_name=--model-name=$MODEL_NAME" >> $GITHUB_ENV
+        else
+          echo "model_name=" >> $GITHUB_ENV
+        fi
+        if [ -n "${{ inputs.model_version }}" ]; then
+          echo "model_version=--model-version=$MODEL_VERSION" >> $GITHUB_ENV
+        else
+          echo "model_version=" >> $GITHUB_ENV
+        fi
+        if [ -z "${{ inputs.sarif_file }}" ]; then
+          echo "sarif_file=--output=$SARIF_FILE" >> $GITHUB_ENV
+        else
+          echo "sarif_file=--output=result.sarif" >> $GITHUB_ENV
+        fi
+      
+    - name: Scan Models
+      id: scan_models
+      if: ${{ inputs.fail_on_detection || inputs.upload_to_hiddenlayer || inputs.output_file }}
+      shell: bash
+      run: |
+        scan_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -v $REPOSITORY_PATH/$MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION)
+        echo scan_results=$scan_results >> $GITHUB_OUTPUT
+      env:
+        UPLOAD_TO_HIDDENLAYER: ${{ inputs.upload_to_hiddenlayer == 'true' && '--persist' || '' }}
+        SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
+        SCANNER_VERSION: ${{ inputs.local_scanner_version }}
+        MODEL_PATH: ${{ inputs.model_path }}
+        REPOSITORY_PATH: ${{ github.workspace }}
+
+    - name: Scan Models (Sarif)
+      id: scan_models_sarif
+      if: ${{ inputs.sarif_file || inputs.upload_to_github_security }}
+      shell: bash
+      run: |
+        sarif_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -v /home/runner/work/$REPOSITORY_PATH/$MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output-format=sarif)
+        echo "sarif_results=$sarif_results" >> $GITHUB_OUTPUT
+      env:
+        SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
+        SCANNER_VERSION: ${{ inputs.local_scanner_version }}
+        MODEL_PATH: ${{ inputs.model_path }}
+        REPOSITORY_PATH: ${{ github.repository }}
+        SARIF_FILE: ${{ inputs.sarif_file }}
+
+    - name : Write Output
+      shell: bash
+      if: ${{ inputs.output_file }}
+      run: |
+        echo '${{ steps.scan_models.outputs.scan_results }}' > ${{ inputs.output_file }}
+
+    - name: Write SARIF Output
+      shell: bash
+      if: ${{ inputs.sarif_file || inputs.upload_to_github_security }}
+      run: |
+        echo '${{ steps.scan_models_sarif.outputs.sarif_results }}' > ${{ inputs.sarif_file || 'results.sarif'}}
+
+    - name: Upload to Github Security
+      if: ${{ inputs.upload_to_github_security }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        # Path to SARIF file relative to the root of the repository
+        sarif_file: ${{ inputs.sarif_file || 'results.sarif' }}
+        # Optional category for the results
+        # Used to differentiate multiple results for one commit
+        category: hiddenlayer-model-scanner
+    
+    - name: Fail Job if Detections
+      shell: bash
+      if: ${{ inputs.fail_on_detection }}
+      run: |
+        detections=$(echo '${{ steps.scan_models.outputs.scan_results }}' | jq '.detection_count')
+        if [ $detections -gt 0 ]; then
+          echo "Detections found: $detections. Failing job."
+          exit 1
+        fi
