@@ -84,7 +84,7 @@ runs:
       run: |
         scan_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -e HL_CLIENT_ID=$HL_CLIENT_ID -e HL_CLIENT_SECRET=$HL_CLIENT_SECRET -v $MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION)
         { echo 'scan_results<<EOF'
-          echo $scan_results"
+          echo $scan_results
           echo EOF
         } >> "$GITHUB_OUTPUT"
       env:
@@ -100,7 +100,7 @@ runs:
       run: |
         sarif_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -v $MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output-format=sarif)
         { echo 'sarif_results<<EOF'
-          echo $sarif_results"
+          echo $sarif_results
           echo EOF
         } >> "$GITHUB_OUTPUT"
       env:
