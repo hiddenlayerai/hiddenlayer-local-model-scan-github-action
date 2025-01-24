@@ -79,7 +79,7 @@ runs:
         if [ -z "${{ inputs.output_file }}" ]; then
           echo "OUTPUT_FILE=--output=$OUTPUT_FILE" >> $GITHUB_ENV
         else
-          echo "OUTPUT_FILE=${{ runner.temp }}/output.sarif" >> $GITHUB_ENV
+          echo "OUTPUT_FILE=output.json" >> $GITHUB_ENV
         fi
       
     - name: Scan Models
@@ -87,7 +87,7 @@ runs:
       if: ${{ inputs.fail_on_detection || inputs.upload_to_hiddenlayer || inputs.output_file }}
       shell: bash
       run: |
-        scan_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -e HL_CLIENT_ID=$HL_CLIENT_ID -e HL_CLIENT_SECRET=$HL_CLIENT_SECRET -v $MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output $OUTPUT_FILE $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION)
+        scan_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -e HL_CLIENT_ID=$HL_CLIENT_ID -e HL_CLIENT_SECRET=$HL_CLIENT_SECRET -v $MODEL_PATH:/files-to-scan -v ${{ runner.temp }}:/results $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output /results/$OUTPUT_FILE $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION)
         { echo 'scan_results<<EOF'
           echo $scan_results
           echo EOF
@@ -114,12 +114,6 @@ runs:
         MODEL_PATH: ${{ inputs.model_path }}
         SARIF_FILE: ${{ inputs.sarif_file }}
 
-    - name : Write Output
-      shell: bash
-      if: ${{ inputs.output_file }}
-      run: |
-        echo '${{ steps.scan_models.outputs.scan_results }}' > ${{ inputs.output_file }}
-
     - name: Write SARIF Output
       shell: bash
       if: ${{ inputs.sarif_file || inputs.upload_to_github_security }}
@@ -140,7 +134,7 @@ runs:
       shell: bash
       if: ${{ inputs.fail_on_detection }}
       run: |
-        detections=$(cat $OUTPUT_FILE | jq '.detection_count')
+        detections=$(cat ${{ runner.temp }}/$OUTPUT_FILE | jq '.detection_count')
         if [ $detections -gt 0 ]; then
           echo "Detections found: $detections. Failing job."
           exit 1
