@@ -62,12 +62,12 @@ runs:
       id: calculate_cli_parameters
       run: |
         if [ -n "${{ inputs.model_name }}" ]; then
-          echo "model_name=--model-name=$MODEL_NAME" >> $GITHUB_ENV
+          echo "model_name=--model-name=${{ inputs.model_name }}" >> $GITHUB_ENV
         else
           echo "model_name=" >> $GITHUB_ENV
         fi
         if [ -n "${{ inputs.model_version }}" ]; then
-          echo "model_version=--model-version=$MODEL_VERSION" >> $GITHUB_ENV
+          echo "model_version=--model-version=${{ inputs.model_version }}" >> $GITHUB_ENV
         else
           echo "model_version=" >> $GITHUB_ENV
         fi
@@ -89,7 +89,6 @@ runs:
         SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
         SCANNER_VERSION: ${{ inputs.local_scanner_version }}
         MODEL_PATH: ${{ inputs.model_path }}
-        REPOSITORY_PATH: ${{ github.workspace }}
 
     - name: Scan Models (Sarif)
       id: scan_models_sarif
@@ -102,7 +101,6 @@ runs:
         SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
         SCANNER_VERSION: ${{ inputs.local_scanner_version }}
         MODEL_PATH: ${{ inputs.model_path }}
-        REPOSITORY_PATH: ${{ github.repository }}
         SARIF_FILE: ${{ inputs.sarif_file }}
 
     - name : Write Output
