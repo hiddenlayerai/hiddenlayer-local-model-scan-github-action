@@ -28,7 +28,7 @@ jobs:
         id: scan_local_model
         uses: ./
         with:
-          model_path: test_data/
+          model_path: ./test_data
           fail_on_detection: false
           output_file: output.json
           sarif_file: output.sarif
