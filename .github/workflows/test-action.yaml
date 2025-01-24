@@ -34,6 +34,8 @@ jobs:
           sarif_file: output.sarif
           model_name: GH_Local_Scan_Test_Model
           model_version: 1
+          upload_to_hiddenlayer: true
+          upload_to_github_security: true
         env:
           HL_CLIENT_ID: ${{ vars.HL_CLIENT_ID }}
           HL_CLIENT_SECRET: ${{ secrets.HL_CLIENT_SECRET }}
