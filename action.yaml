@@ -87,6 +87,8 @@ runs:
       if: ${{ inputs.fail_on_detection || inputs.upload_to_hiddenlayer || inputs.output_file }}
       shell: bash
       run: |
+        touch ${{ runner.temp }}/$OUTPUT_FILE
+        chmod ugo+rw ${{ runner.temp }}/$OUTPUT_FILE
         scan_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -e HL_CLIENT_ID=$HL_CLIENT_ID -e HL_CLIENT_SECRET=$HL_CLIENT_SECRET -v $MODEL_PATH:/files-to-scan -v ${{ runner.temp }}:/results:Z $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output /results/$OUTPUT_FILE $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION)
         { echo 'scan_results<<EOF'
           echo $scan_results
