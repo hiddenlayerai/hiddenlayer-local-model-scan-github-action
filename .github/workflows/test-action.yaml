@@ -23,7 +23,7 @@ jobs:
           egress-policy: audit 
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      
+
       - name: Scan local test model
         id: scan_local_model
         uses: ./
@@ -32,7 +32,7 @@ jobs:
           fail_on_detection: false
           output_file: output.json
           sarif_file: output.sarif
-          model_name: AndrewD-GH-Test
+          model_name: GH_Local_Scan_Test_Model
           model_version: 1
         env:
           HL_CLIENT_ID: ${{ vars.HL_CLIENT_ID }}

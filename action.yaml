@@ -96,7 +96,7 @@ runs:
       if: ${{ inputs.sarif_file || inputs.upload_to_github_security }}
       shell: bash
       run: |
-        sarif_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -v /home/runner/work/$REPOSITORY_PATH/$MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output-format=sarif)
+        sarif_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -v $REPOSITORY_PATH/$MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output-format=sarif)
         echo "sarif_results=$sarif_results" >> $GITHUB_OUTPUT
       env:
         SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
