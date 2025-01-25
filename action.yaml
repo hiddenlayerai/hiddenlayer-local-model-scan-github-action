@@ -109,7 +109,7 @@ runs:
     - name: Show Scan (JSON)
       shell: bash
       run: |
-        cat ${{ runner.temp }}/$OUTPUT_FILE
+        cat $OUTPUT_FILE
 
     - name: Copy Results
       shell: bash
