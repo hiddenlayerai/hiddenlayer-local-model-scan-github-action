@@ -82,7 +82,7 @@ runs:
       id: scan_models
       shell: bash
       run: |
-        docker run --rm -e HL_LICENSE=$HL_LICENSE -e HL_CLIENT_ID=$HL_CLIENT_ID -e HL_CLIENT_SECRET=$HL_CLIENT_SECRET -v $MODEL_PATH:/files-to-scan -v ${{ runner.temp }}:/results:Z $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output=$OUTPUT_FILE $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION
+        docker run --rm -e HL_LICENSE=$HL_LICENSE -e HL_CLIENT_ID=$HL_CLIENT_ID -e HL_CLIENT_SECRET=$HL_CLIENT_SECRET -v $MODEL_PATH:/files-to-scan -v ${{ runner.temp }}:/results:Z $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output=/results/result.json $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION
       env:
         UPLOAD_TO_HIDDENLAYER: ${{ inputs.upload_to_hiddenlayer == 'true' && '--persist' || '' }}
         SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
@@ -94,7 +94,7 @@ runs:
       if: ${{ inputs.sarif_file || inputs.upload_to_github_security  == 'true' }}
       shell: bash
       run: |
-        docker run --rm -e HL_LICENSE=$HL_LICENSE -v $MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output-format=sarif --output=$SARIF_FILE $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION
+        docker run --rm -e HL_LICENSE=$HL_LICENSE -v $MODEL_PATH:/files-to-scan -v ${{ runner.temp }}:/results:Z $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output-format=sarif --output=/results/result.sarif
       env:
         SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
         SCANNER_VERSION: ${{ inputs.local_scanner_version }}
