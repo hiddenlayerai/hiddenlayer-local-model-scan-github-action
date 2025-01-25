@@ -71,29 +71,18 @@ runs:
         else
           echo "MODEL_VERSION=" >> $GITHUB_ENV
         fi
-        if [ -z "${{ inputs.sarif_file }}" ]; then
-          echo "SARIF_FILE=--output=$SARIF_FILE" >> $GITHUB_ENV
-        else
-          echo "SARIF_FILE=--output=result.sarif" >> $GITHUB_ENV
-        fi
-        if [ -z "${{ inputs.output_file }}" ]; then
-          echo "OUTPUT_FILE=--output=$OUTPUT_FILE" >> $GITHUB_ENV
-        else
-          echo "OUTPUT_FILE=output.json" >> $GITHUB_ENV
-        fi
+        echo "SARIF_FILE=--output=${{ runner.temp }}/result.sarif" >> $GITHUB_ENV
+        echo "OUTPUT_FILE=--output=${{ runner.temp }}/result.json" >> $GITHUB_ENV
+        touch ${{ runner.temp }}/result.sarif
+        touch ${{ runner.temp }}/result.json
+        chmod ugo+rw ${{ runner.temp }}/result.sarif
+        chmod ugo+rw ${{ runner.temp }}/result.json
       
     - name: Scan Models
       id: scan_models
-      if: ${{ inputs.fail_on_detection  == 'true' || inputs.upload_to_hiddenlayer  == 'true' || inputs.output_file }}
       shell: bash
       run: |
-        touch ${{ runner.temp }}/$OUTPUT_FILE
-        chmod ugo+rw ${{ runner.temp }}/$OUTPUT_FILE
-        scan_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -e HL_CLIENT_ID=$HL_CLIENT_ID -e HL_CLIENT_SECRET=$HL_CLIENT_SECRET -v $MODEL_PATH:/files-to-scan -v ${{ runner.temp }}:/results:Z $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output /results/$OUTPUT_FILE $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION)
-        { echo 'scan_results<<EOF'
-          echo $scan_results
-          echo EOF
-        } >> "$GITHUB_OUTPUT"
+        docker run --rm -e HL_LICENSE=$HL_LICENSE -e HL_CLIENT_ID=$HL_CLIENT_ID -e HL_CLIENT_SECRET=$HL_CLIENT_SECRET -v $MODEL_PATH:/files-to-scan -v ${{ runner.temp }}:/results:Z $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output=$OUTPUT_FILE $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION
       env:
         UPLOAD_TO_HIDDENLAYER: ${{ inputs.upload_to_hiddenlayer == 'true' && '--persist' || '' }}
         SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
@@ -105,44 +94,34 @@ runs:
       if: ${{ inputs.sarif_file || inputs.upload_to_github_security  == 'true' }}
       shell: bash
       run: |
-        sarif_results=$(docker run --rm -e HL_LICENSE=$HL_LICENSE -v $MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output-format=sarif)
-        { echo 'sarif_results<<EOF'
-          echo $sarif_results
-          echo EOF
-        } >> "$GITHUB_OUTPUT"
+        docker run --rm -e HL_LICENSE=$HL_LICENSE -v $MODEL_PATH:/files-to-scan $SCANNER_IMAGE:$SCANNER_VERSION --input /files-to-scan --output-format=sarif --output=$SARIF_FILE $UPLOAD_TO_HIDDENLAYER $MODEL_NAME $MODEL_VERSION
       env:
         SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
         SCANNER_VERSION: ${{ inputs.local_scanner_version }}
         MODEL_PATH: ${{ inputs.model_path }}
         SARIF_FILE: ${{ inputs.sarif_file }}
 
-    - name: Write SARIF Output
-      shell: bash
-      if: ${{ inputs.sarif_file || inputs.upload_to_github_security  == 'true' }}
-      run: |
-        echo '${{ steps.scan_models_sarif.outputs.sarif_results }}' > ${{ inputs.sarif_file || 'results.sarif'}}
-
     - name: Upload to Github Security
       if: ${{ inputs.upload_to_github_security  == 'true' }}
       uses: github/codeql-action/upload-sarif@v3
       with:
-        # Path to SARIF file relative to the root of the repository
-        sarif_file: ${{ inputs.sarif_file || 'results.sarif' }}
-        # Optional category for the results
-        # Used to differentiate multiple results for one commit
-        category: hiddenlayer-model-scanner
+        sarif_file: ${{ runner.temp }}/result.sarif
 
     - name: Show Scan (JSON)
       shell: bash
-      if: ${{ inputs.fail_on_detection  == 'true' || inputs.upload_to_hiddenlayer  == 'true' || inputs.output_file }}
       run: |
         cat ${{ runner.temp }}/$OUTPUT_FILE
 
-    - name: Show Scan (SARIF)
+    - name: Copy Results
       shell: bash
-      if: ${{ inputs.sarif_file || inputs.upload_to_github_security == 'true' }}
+      if: ${{ inputs.output_file || inputs.sarif_file }}
       run: |
-        cat ${{ inputs.sarif_file || 'results.sarif' }}
+        if [ -n "${{ inputs.output_file }}" ]; then
+          cp ${{ runner.temp }}/result.json $GITHUB_WORKSPACE/${{ inputs.output_file }}
+        fi
+        if [ -n "${{ inputs.sarif_file }}" ]; then
+          cp ${{ runner.temp }}/result.sarif $GITHUB_WORKSPACE/${{ inputs.sarif_file }}
+        fi
     
     - name: Fail Job if Detections
       shell: bash
