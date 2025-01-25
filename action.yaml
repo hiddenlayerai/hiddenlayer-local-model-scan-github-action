@@ -71,8 +71,8 @@ runs:
         else
           echo "MODEL_VERSION=" >> $GITHUB_ENV
         fi
-        echo "SARIF_FILE=--output=${{ runner.temp }}/result.sarif" >> $GITHUB_ENV
-        echo "OUTPUT_FILE=--output=${{ runner.temp }}/result.json" >> $GITHUB_ENV
+        echo "SARIF_FILE=${{ runner.temp }}/result.sarif" >> $GITHUB_ENV
+        echo "OUTPUT_FILE=${{ runner.temp }}/result.json" >> $GITHUB_ENV
         touch ${{ runner.temp }}/result.sarif
         touch ${{ runner.temp }}/result.json
         chmod ugo+rw ${{ runner.temp }}/result.sarif
@@ -99,7 +99,6 @@ runs:
         SCANNER_IMAGE: ${{ inputs.local_scanner_image }}
         SCANNER_VERSION: ${{ inputs.local_scanner_version }}
         MODEL_PATH: ${{ inputs.model_path }}
-        SARIF_FILE: ${{ inputs.sarif_file }}
 
     - name: Upload to Github Security
       if: ${{ inputs.upload_to_github_security  == 'true' }}
@@ -117,10 +116,10 @@ runs:
       if: ${{ inputs.output_file || inputs.sarif_file }}
       run: |
         if [ -n "${{ inputs.output_file }}" ]; then
-          cp ${{ runner.temp }}/result.json $GITHUB_WORKSPACE/${{ inputs.output_file }}
+          cp $OUTPUT_FILE $GITHUB_WORKSPACE/${{ inputs.output_file }}
         fi
         if [ -n "${{ inputs.sarif_file }}" ]; then
-          cp ${{ runner.temp }}/result.sarif $GITHUB_WORKSPACE/${{ inputs.sarif_file }}
+          cp $SARIF_FILE $GITHUB_WORKSPACE/${{ inputs.sarif_file }}
         fi
     
     - name: Fail Job if Detections
