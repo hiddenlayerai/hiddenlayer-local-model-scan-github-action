@@ -1,0 +1,44 @@
+
+name: Test Action
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  test_local_scan:
+    runs-on: ubuntu-latest 
+    permissions:
+      security-events: write
+      contents: read  
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit 
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Scan local test model
+        id: scan_local_model
+        uses: ./
+        with:
+          model_path: ./test_data
+          fail_on_detection: false
+          output_file: output.json
+          sarif_file: output.sarif
+          model_name: GH_Local_Scan_Test_Model
+          model_version: 1
+          upload_to_hiddenlayer: true
+          upload_to_github_security: true
+        env:
+          HL_CLIENT_ID: ${{ vars.HL_CLIENT_ID }}
+          HL_CLIENT_SECRET: ${{ secrets.HL_CLIENT_SECRET }}
+          HL_CONTAINER_REGISTRY_USER: ${{ vars.HL_CONTAINER_REGISTRY_USER }}
+          HL_CONTAINER_REGISTRY_SECRET: ${{ secrets.HL_CONTAINER_REGISTRY_SECRET }}
+          HL_LICENSE: ${{ secrets.HL_LICENSE }}
