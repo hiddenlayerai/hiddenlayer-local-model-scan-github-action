@@ -1,5 +1,5 @@
-name: 'Local Model Scanner'
-description: 'Scans models for vulnerabilities using the HiddenLayer Model Scanner'
+name: 'Model Scanner Self Hosted'
+description: 'Scans models for vulnerabilities using the HiddenLayer Model Scanner Self Hosted CLI'
 branding:
   icon: lock
   color: green
