@@ -2,6 +2,12 @@
 
 Integrate model scanning into your continuous integration (CI) process with HiddenLayer's GitHub Actions (GHA) integration. This action can scan your models that are stored in a repository.
 
+## GitHub Runner Size
+
+> [!WARNING]
+> The default storage of a Github hosted runner is 14 GB. Some models can far exceed this limitation leading to the experience of a failure for the GitHub action to complete due to running out of disk space. Please reference the [Github Runner Sizing Guide](https://docs.github.com/en/actions/using-github-hosted-runners/using-larger-runners/about-larger-runners) to choose runners appropriate for the size of models you plan to scan.
+
+
 ## Inputs
 
 `model_path` (required): Path to the model(s), relative to root of your repository.
